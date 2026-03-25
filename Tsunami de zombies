@@ -6,8 +6,9 @@ local alvo = pGui:FindFirstChild("AdminFrame", true) or game:GetService("Starter
 if not alvo then return end
 
 local sg = Instance.new("ScreenGui", pGui)
-sg.Name = "PainelFinal_Fixed"
+sg.Name = "get admin painel by BuggyXTown"
 sg.ResetOnSpawn = false
+sg.DisplayOrder = 10
 
 local painel = alvo:Clone()
 painel.Parent = sg
@@ -15,190 +16,356 @@ painel.Visible = true
 painel.Active = true
 painel.Draggable = true
 
+local templateButton = painel:FindFirstChild("PlayerButton", true)
+
 for _, s in pairs(painel:GetDescendants()) do
 	if s:IsA("LocalScript") then
 		s:Destroy()
 	end
 end
 
-local frames = {
-	Spawn = painel:FindFirstChild("SpawnFrame"),
-	Announcements = painel:FindFirstChild("AnnouncementsFrame"),
-	Leaderstats = painel:FindFirstChild("LeaderstatsFrame")
+local dados = {
+	Tsunami = {},
+	Eventos = {},
+	Things = {},
+	Mutacao = {},
+	Area = {{["Name"] = "Main"}}
 }
 
-local list = painel:FindFirstChild("List")
-
-local function abrir(nome)
-	for n, f in pairs(frames) do
-		if f then
-			f.Visible = (n == nome)
+local function abrirDropdown(caixaTexto, frameLista, tabelaDados)
+	if not (caixaTexto and frameLista) then return end
+	
+	frameLista.Visible = not frameLista.Visible
+	
+	for _, v in pairs(frameLista:GetChildren()) do
+		if v:IsA("GuiObject") and v.ClassName ~= "UIListLayout" then
+			v:Destroy()
+		end
+	end
+	
+	if frameLista.Visible then
+		for _, v64 in pairs(tabelaDados) do
+			local btn = templateButton and templateButton:Clone() or Instance.new("TextButton")
+			
+			if not templateButton then
+				btn.Size = UDim2.new(1, 0, 0, 25)
+				btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+				btn.TextColor3 = Color3.new(1, 1, 1)
+				btn.TextSize = 14
+			end
+			
+			btn.Name = v64.Name
+			btn.Text = v64.Name
+			btn.Parent = frameLista
+			btn.Visible = true
+			
+			btn.MouseButton1Click:Connect(function()
+				caixaTexto.Text = btn.Text
+				frameLista.Visible = false
+				
+				for _, v66 in pairs(frameLista:GetChildren()) do
+					if v66:IsA("GuiObject") and v66.ClassName ~= "UIListLayout" then
+						v66:Destroy()
+					end
+				end
+			end)
 		end
 	end
 end
 
+local function registrar(tabela, nome)
+	for _, v in pairs(tabela) do
+		if v.Name == nome then return end
+	end
+	table.insert(tabela, {["Name"] = nome})
+end
+
+Remotes.ConferirTsunamiNoAdmin.OnClientEvent:Connect(function(p) registrar(dados.Tsunami, p) end)
+Remotes.ConferirEventosNoAdmin.OnClientEvent:Connect(function(p) registrar(dados.Eventos, p) end)
+Remotes.ConferirThingsNoAdmin.OnClientEvent:Connect(function(p) registrar(dados.Things, p) end)
+Remotes.ConferirMutacaoNoAdmin.OnClientEvent:Connect(function(p) registrar(dados.Mutacao, p) end)
+Remotes.ConferirAreaNoAdmin.OnClientEvent:Connect(function(p) registrar(dados.Area, p) end)
+
+Remotes.ConferirTsunamiNoAdmin:FireServer()
+Remotes.ConferirEventosNoAdmin:FireServer()
+Remotes.ConferirThingsNoAdmin:FireServer()
+
+local fSpawn = painel:FindFirstChild("SpawnFrame")
+local fAnn = painel:FindFirstChild("AnnouncementsFrame")
+local fStats = painel:FindFirstChild("LeaderstatsFrame")
+local list = painel:FindFirstChild("List")
+
 if list then
 	if list:FindFirstChild("SpawnButton") then
 		list.SpawnButton.MouseButton1Click:Connect(function()
-			abrir("Spawn")
+			fSpawn.Visible = true
+			fAnn.Visible = false
+			fStats.Visible = false
 		end)
 	end
+	
 	if list:FindFirstChild("AnnouncementsButton") then
 		list.AnnouncementsButton.MouseButton1Click:Connect(function()
-			abrir("Announcements")
+			fSpawn.Visible = false
+			fAnn.Visible = true
+			fStats.Visible = false
 		end)
 	end
+	
 	if list:FindFirstChild("LeaderstatButton") then
 		list.LeaderstatButton.MouseButton1Click:Connect(function()
-			abrir("Leaderstats")
+			fSpawn.Visible = false
+			fAnn.Visible = false
+			fStats.Visible = true
 		end)
 	end
 end
 
-abrir("Spawn")
-
-if frames.Spawn then
-	local f = frames.Spawn
-	local tTsu = f:FindFirstChild("TsunamiTextBox")
-	local tTh = f:FindFirstChild("SpawnThingTextBox")
-	local tMu = f:FindFirstChild("SpawnMutacaoTextBox")
-	local tAr = f:FindFirstChild("SpawnAreaTextBox")
-	local tEv = f:FindFirstChild("EventoText")
-
-	if f:FindFirstChild("TsunamiButton") then
-		f.TsunamiButton.MouseButton1Click:Connect(function()
-			Remotes.TsunamiRain:FireServer(tTsu.Text)
+local function bindClick(obj, callback)
+	if not obj then return end
+	
+	if obj:IsA("TextButton") then
+		obj.MouseButton1Click:Connect(callback)
+	else
+		obj.Focused:Connect(callback)
+		pcall(function()
+			obj.InputBegan:Connect(function(io)
+				if io.UserInputType == Enum.UserInputType.MouseButton1 then
+					callback()
+				end
+			end)
 		end)
 	end
-	if f:FindFirstChild("TsunamiGlobalButton") then
-		f.TsunamiGlobalButton.MouseButton1Click:Connect(function()
-			Remotes.TsunamiRainGlobal:FireServer(tTsu.Text)
+end
+
+if fSpawn then
+	bindClick(fSpawn:FindFirstChild("TsunamiTextBox"), function()
+		abrirDropdown(fSpawn.TsunamiTextBox, fSpawn.TsunamiProcurando, dados.Tsunami)
+	end)
+	
+	bindClick(fSpawn:FindFirstChild("EventoText"), function()
+		abrirDropdown(fSpawn.EventoText, fSpawn.EventosProcurando, dados.Eventos)
+	end)
+	
+	bindClick(fSpawn:FindFirstChild("SpawnThingTextBox"), function()
+		abrirDropdown(fSpawn.SpawnThingTextBox, fSpawn.ThingsProcurando, dados.Things)
+	end)
+	
+	bindClick(fSpawn:FindFirstChild("SpawnMutacaoTextBox"), function()
+		abrirDropdown(fSpawn.SpawnMutacaoTextBox, fSpawn.MutacaoProcurando, dados.Mutacao)
+	end)
+	
+	bindClick(fSpawn:FindFirstChild("SpawnAreaTextBox"), function()
+		abrirDropdown(fSpawn.SpawnAreaTextBox, fSpawn.AreaProcurando, dados.Area)
+	end)
+end
+
+if fStats then
+	bindClick(fStats:FindFirstChild("LeaderstatsPlayerTextBox"), function()
+		abrirDropdown(fStats.LeaderstatsPlayerTextBox, fStats.PlayerProcurando, game.Players:GetPlayers())
+	end)
+	
+	bindClick(fStats:FindFirstChild("LeaderstatsStats"), function()
+		if player:FindFirstChild("leaderstats") then
+			abrirDropdown(fStats.LeaderstatsStats, fStats:FindFirstChild("LeaderstatsProcurando"), player.leaderstats:GetChildren())
+		end
+	end)
+end
+
+if fSpawn then
+	local tTsu = fSpawn:FindFirstChild("TsunamiTextBox")
+	local tTh = fSpawn:FindFirstChild("SpawnThingTextBox")
+	local tMu = fSpawn:FindFirstChild("SpawnMutacaoTextBox")
+	local tAr = fSpawn:FindFirstChild("SpawnAreaTextBox")
+	local tEv = fSpawn:FindFirstChild("EventoText")
+
+	if fSpawn:FindFirstChild("TsunamiButton") then
+		fSpawn.TsunamiButton.MouseButton1Click:Connect(function()
+			if tTsu.Text ~= "" then
+				Remotes.TsunamiRain:FireServer(tTsu.Text)
+			end
 		end)
 	end
-	if f:FindFirstChild("ClearTsunamiButton") then
-		f.ClearTsunamiButton.MouseButton1Click:Connect(function()
+	
+	if fSpawn:FindFirstChild("TsunamiGlobalButton") then
+		fSpawn.TsunamiGlobalButton.MouseButton1Click:Connect(function()
+			if tTsu.Text ~= "" then
+				Remotes.TsunamiRainGlobal:FireServer(tTsu.Text)
+			end
+		end)
+	end
+	
+	if fSpawn:FindFirstChild("ClearTsunamiButton") then
+		fSpawn.ClearTsunamiButton.MouseButton1Click:Connect(function()
 			Remotes.TsunamiClear:FireServer()
 		end)
 	end
-	if f:FindFirstChild("ClearTsunamiButtonGlobal") then
-		f.ClearTsunamiButtonGlobal.MouseButton1Click:Connect(function()
+	
+	if fSpawn:FindFirstChild("ClearTsunamiButtonGlobal") then
+		fSpawn.ClearTsunamiButtonGlobal.MouseButton1Click:Connect(function()
 			Remotes.TsunamiClearGlobal:FireServer()
 		end)
 	end
-
-	if f:FindFirstChild("SpawnThingButton") then
-		f.SpawnThingButton.MouseButton1Click:Connect(function()
-			Remotes.SpawnThing:FireServer(tTh.Text, tMu.Text, tAr.Text)
+	
+	if fSpawn:FindFirstChild("SpawnThingButton") then
+		fSpawn.SpawnThingButton.MouseButton1Click:Connect(function()
+			if tTh.Text ~= "" and tMu.Text ~= "" then
+				Remotes.SpawnThing:FireServer(tTh.Text, tMu.Text, tAr.Text)
+			end
 		end)
 	end
-	if f:FindFirstChild("SpawnGlobalThingButton") then
-		f.SpawnGlobalThingButton.MouseButton1Click:Connect(function()
-			Remotes.SpawnThingGlobal:FireServer(tTh.Text, tMu.Text, tAr.Text)
+	
+	if fSpawn:FindFirstChild("SpawnGlobalThingButton") then
+		fSpawn.SpawnGlobalThingButton.MouseButton1Click:Connect(function()
+			if tTh.Text ~= "" and tMu.Text ~= "" then
+				Remotes.SpawnThingGlobal:FireServer(tTh.Text, tMu.Text, tAr.Text)
+			end
 		end)
 	end
-	if f:FindFirstChild("SpawnThingRaceButton") then
-		f.SpawnThingRaceButton.MouseButton1Click:Connect(function()
-			Remotes.SpawnThingRace:FireServer(tTh.Text, tMu.Text)
+	
+	if fSpawn:FindFirstChild("SpawnThingRaceButton") then
+		fSpawn.SpawnThingRaceButton.MouseButton1Click:Connect(function()
+			if tTh.Text ~= "" and tMu.Text ~= "" then
+				Remotes.SpawnThingRace:FireServer(tTh.Text, tMu.Text)
+			end
 		end)
 	end
-	if f:FindFirstChild("SpawnGlobalThingRaceButton") then
-		f.SpawnGlobalThingRaceButton.MouseButton1Click:Connect(function()
-			Remotes.SpawnThingRaceGlobal:FireServer(tTh.Text, tMu.Text)
+	
+	if fSpawn:FindFirstChild("SpawnGlobalThingRaceButton") then
+		fSpawn.SpawnGlobalThingRaceButton.MouseButton1Click:Connect(function()
+			if tTh.Text ~= "" and tMu.Text ~= "" then
+				Remotes.SpawnThingRaceGlobal:FireServer(tTh.Text, tMu.Text)
+			end
 		end)
 	end
-	if f:FindFirstChild("SpawnInventarioButton") then
-		f.SpawnInventarioButton.MouseButton1Click:Connect(function()
-			Remotes.PegouOutro:FireServer(tTh.Text, tMu.Text)
+	
+	if fSpawn:FindFirstChild("SpawnInventarioButton") then
+		fSpawn.SpawnInventarioButton.MouseButton1Click:Connect(function()
+			if tTh.Text ~= "" and tMu.Text ~= "" then
+				Remotes.PegouOutro:FireServer(tTh.Text, tMu.Text)
+			end
 		end)
 	end
-
-	if f:FindFirstChild("EventoButton") then
-		f.EventoButton.MouseButton1Click:Connect(function()
-			Remotes.Eventos:FireServer(tEv.Text)
+	
+	if fSpawn:FindFirstChild("EventoButton") then
+		fSpawn.EventoButton.MouseButton1Click:Connect(function()
+			if tEv.Text ~= "" then
+				Remotes.Eventos:FireServer(tEv.Text)
+			end
 		end)
 	end
-	if f:FindFirstChild("EventoButtonGlobal") then
-		f.EventoButtonGlobal.MouseButton1Click:Connect(function()
-			Remotes.EventosGlobal:FireServer(tEv.Text)
+	
+	if fSpawn:FindFirstChild("StopEventoButton") then
+		fSpawn.StopEventoButton.MouseButton1Click:Connect(function()
+			if tEv.Text ~= "" then
+				Remotes.EventosStop:FireServer(tEv.Text)
+			end
 		end)
 	end
-	if f:FindFirstChild("StopEventoButton") then
-		f.StopEventoButton.MouseButton1Click:Connect(function()
-			Remotes.EventosStop:FireServer(tEv.Text)
+	
+	if fSpawn:FindFirstChild("EventoButtonGlobal") then
+		fSpawn.EventoButtonGlobal.MouseButton1Click:Connect(function()
+			if tEv.Text ~= "" then
+				Remotes.EventosGlobal:FireServer(tEv.Text)
+			end
 		end)
 	end
-	if f:FindFirstChild("StopEventoButtonGlobal") then
-		f.StopEventoButtonGlobal.MouseButton1Click:Connect(function()
-			Remotes.EventosStopGlobal:FireServer(tEv.Text)
-		end)
-	end
-end
-
-if frames.Announcements then
-	local f = frames.Announcements
-	local tAn = f:FindFirstChild("AnnouncementText")
-	local tPo = f:FindFirstChild("PollText")
-	local tV1 = f:FindFirstChild("PollVoto1")
-	local tV2 = f:FindFirstChild("PollVoto2")
-	local tTe = f:FindFirstChild("PollTempo")
-	local tCn = f:FindFirstChild("CountdownName")
-	local tCt = f:FindFirstChild("CountdownTime")
-
-	if f:FindFirstChild("AnnouncementButton") then
-		f.AnnouncementButton.MouseButton1Click:Connect(function()
-			Remotes.Announcement:FireServer(tAn.Text)
-			tAn.Text = ""
-		end)
-	end
-	if f:FindFirstChild("AnnouncementGlobalButton") then
-		f.AnnouncementGlobalButton.MouseButton1Click:Connect(function()
-			Remotes.AnnouncementGlobal:FireServer(tAn.Text)
-			tAn.Text = ""
-		end)
-	end
-
-	if f:FindFirstChild("PollsButton") then
-		f.PollsButton.MouseButton1Click:Connect(function()
-			Remotes.Polls:FireServer(tPo.Text, tV1.Text, tV2.Text, tonumber(tTe.Text), "Server")
-		end)
-	end
-	if f:FindFirstChild("GlobalPollsButton") then
-		f.GlobalPollsButton.MouseButton1Click:Connect(function()
-			Remotes.Polls:FireServer(tPo.Text, tV1.Text, tV2.Text, tonumber(tTe.Text), "Global")
-		end)
-	end
-
-	if f:FindFirstChild("CountdownButton") then
-		f.CountdownButton.MouseButton1Click:Connect(function()
-			Remotes.Countdown:FireServer(tCn.Text, tonumber(tCt.Text), false)
-		end)
-	end
-	if f:FindFirstChild("GlobalCountdownButton") then
-		f.GlobalCountdownButton.MouseButton1Click:Connect(function()
-			Remotes.Countdown:FireServer(tCn.Text, tonumber(tCt.Text), true)
+	
+	if fSpawn:FindFirstChild("StopEventoButtonGlobal") then
+		fSpawn.StopEventoButtonGlobal.MouseButton1Click:Connect(function()
+			if tEv.Text ~= "" then
+				Remotes.EventosStopGlobal:FireServer(tEv.Text)
+			end
 		end)
 	end
 end
 
-if frames.Leaderstats then
-	local f = frames.Leaderstats
-	local tPl = f:FindFirstChild("LeaderstatsPlayerTextBox")
-	local tSt = f:FindFirstChild("LeaderstatsStats")
-	local tVa = f:FindFirstChild("LeaderstatsValue")
+if fAnn then
+	local tAn = fAnn:FindFirstChild("AnnouncementText")
+	local tPo = fAnn:FindFirstChild("PollText")
+	local tV1 = fAnn:FindFirstChild("PollVoto1")
+	local tV2 = fAnn:FindFirstChild("PollVoto2")
+	local tTe = fAnn:FindFirstChild("PollTempo")
+	local tCn = fAnn:FindFirstChild("CountdownName")
+	local tCt = fAnn:FindFirstChild("CountdownTime")
 
-	if f:FindFirstChild("LeaderstatsButton") then
-		f.LeaderstatsButton.MouseButton1Click:Connect(function()
-			Remotes.UpdateLeaderstats:FireServer(tPl.Text, tSt.Text, tonumber(tVa.Text))
+	if fAnn:FindFirstChild("AnnouncementButton") then
+		fAnn.AnnouncementButton.MouseButton1Click:Connect(function()
+			if tAn.Text ~= "" then
+				Remotes.Announcement:FireServer(tAn.Text)
+				tAn.Text = ""
+			end
 		end)
 	end
-	if f:FindFirstChild("LeaderstatsAdicionarButton") then
-		f.LeaderstatsAdicionarButton.MouseButton1Click:Connect(function()
-			Remotes.UpdateLeaderstatsAdicionar:FireServer(tPl.Text, tSt.Text, tonumber(tVa.Text))
+	
+	if fAnn:FindFirstChild("AnnouncementGlobalButton") then
+		fAnn.AnnouncementGlobalButton.MouseButton1Click:Connect(function()
+			if tAn.Text ~= "" then
+				Remotes.AnnouncementGlobal:FireServer(tAn.Text)
+				tAn.Text = ""
+			end
 		end)
 	end
-	if f:FindFirstChild("LeaderstatsRemoveButton") then
-		f.LeaderstatsRemoveButton.MouseButton1Click:Connect(function()
-			Remotes.UpdateLeaderstatsRemover:FireServer(tPl.Text, tSt.Text, tonumber(tVa.Text))
+	
+	if fAnn:FindFirstChild("PollsButton") then
+		fAnn.PollsButton.MouseButton1Click:Connect(function()
+			if tPo.Text ~= "" and tV1.Text ~= "" and tV2.Text ~= "" and tonumber(tTe.Text) then
+				Remotes.Polls:FireServer(tPo.Text, tV1.Text, tV2.Text, tonumber(tTe.Text), "Server")
+			end
+		end)
+	end
+	
+	if fAnn:FindFirstChild("GlobalPollsButton") then
+		fAnn.GlobalPollsButton.MouseButton1Click:Connect(function()
+			if tPo.Text ~= "" and tV1.Text ~= "" and tV2.Text ~= "" and tonumber(tTe.Text) then
+				Remotes.Polls:FireServer(tPo.Text, tV1.Text, tV2.Text, tonumber(tTe.Text), "Global")
+			end
+		end)
+	end
+	
+	if fAnn:FindFirstChild("CountdownButton") then
+		fAnn.CountdownButton.MouseButton1Click:Connect(function()
+			if tCn.Text ~= "" and tonumber(tCt.Text) then
+				Remotes.Countdown:FireServer(tCn.Text, tonumber(tCt.Text), false)
+			end
+		end)
+	end
+	
+	if fAnn:FindFirstChild("GlobalCountdownButton") then
+		fAnn.GlobalCountdownButton.MouseButton1Click:Connect(function()
+			if tCn.Text ~= "" and tonumber(tCt.Text) then
+				Remotes.Countdown:FireServer(tCn.Text, tonumber(tCt.Text), true)
+			end
+		end)
+	end
+end
+
+if fStats then
+	local tPl = fStats:FindFirstChild("LeaderstatsPlayerTextBox")
+	local tSt = fStats:FindFirstChild("LeaderstatsStats")
+	local tVa = fStats:FindFirstChild("LeaderstatsValue")
+
+	if fStats:FindFirstChild("LeaderstatsButton") then
+		fStats.LeaderstatsButton.MouseButton1Click:Connect(function()
+			if tPl.Text ~= "" and tonumber(tVa.Text) then
+				Remotes.UpdateLeaderstats:FireServer(tPl.Text, tSt.Text, tonumber(tVa.Text))
+			end
+		end)
+	end
+	
+	if fStats:FindFirstChild("LeaderstatsAdicionarButton") then
+		fStats.LeaderstatsAdicionarButton.MouseButton1Click:Connect(function()
+			if tPl.Text ~= "" and tonumber(tVa.Text) then
+				Remotes.UpdateLeaderstatsAdicionar:FireServer(tPl.Text, tSt.Text, tonumber(tVa.Text))
+			end
+		end)
+	end
+	
+	if fStats:FindFirstChild("LeaderstatsRemoveButton") then
+		fStats.LeaderstatsRemoveButton.MouseButton1Click:Connect(function()
+			if tPl.Text ~= "" and tonumber(tVa.Text) then
+				Remotes.UpdateLeaderstatsRemover:FireServer(tPl.Text, tSt.Text, tonumber(tVa.Text))
+			end
 		end)
 	end
 end
